@@ -1,0 +1,42 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum ServiceType {
+  TATUAJE
+  PIERCING
+  CONSULTA
+}
+
+model Reserva {
+  id          String      @id @default(cuid())
+  nombre      String
+  email       String
+  telefono    String
+  servicio    ServiceType
+  fecha       DateTime
+  hora        String
+  duracion    Int
+  descripcion String
+  createdAt   DateTime    @default(now())
+}
+
+model BlockedSlot {
+  id        String   @id @default(cuid())
+  fecha     DateTime
+  hora      String
+  duracion  Int
+  motivo    String?
+  createdAt DateTime @default(now())
+}
+
+model StudioSetting {
+  id           String @id @default("main")
+  openHour     Int    @default(11)
+  closeHour    Int    @default(21)
+  slotInterval Int    @default(30)
+}
