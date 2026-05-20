@@ -2,26 +2,30 @@
 
 import { useState } from "react";
 import { format } from "date-fns";
+import type { BlockedSlot as PrismaBlockedSlot, Reserva as PrismaReserva } from "@prisma/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/use-toast";
 
-type Reserva = {
-  id: string;
-  nombre: string;
-  email: string;
-  telefono: string;
-  servicio: "TATUAJE" | "PIERCING" | "CONSULTA";
-  fecha: string;
-  hora: string;
-  duracion: number;
-};
+export type ReservaSerializada = Pick<
+  PrismaReserva,
+  "id" | "nombre" | "email" | "telefono" | "servicio" | "hora" | "duracion"
+> & { fecha: string };
 
-type BlockedSlot = { id: string; fecha: string; hora: string; duracion: number; motivo: string | null };
+export type BloqueoSerializado = Pick<
+  PrismaBlockedSlot,
+  "id" | "hora" | "duracion" | "motivo"
+> & { fecha: string };
 
-export function AdminPanel({ initialReservas, initialBloqueos }: { initialReservas: Reserva[]; initialBloqueos: BlockedSlot[] }) {
+export function AdminPanel({
+  initialReservas,
+  initialBloqueos
+}: {
+  initialReservas: ReservaSerializada[];
+  initialBloqueos: BloqueoSerializado[];
+}) {
   const [reservas, setReservas] = useState(initialReservas);
   const [bloqueos, setBloqueos] = useState(initialBloqueos);
   const [bloqueo, setBloqueo] = useState({ fecha: "", hora: "", duracion: 60, motivo: "" });
