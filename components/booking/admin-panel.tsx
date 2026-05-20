@@ -2,22 +2,12 @@
 
 import { useState } from "react";
 import { format } from "date-fns";
-import type { BlockedSlot as PrismaBlockedSlot, Reserva as PrismaReserva } from "@prisma/client";
+import type { BloqueoSerializado, ReservaSerializada } from "@/lib/demo-data";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/use-toast";
-
-export type ReservaSerializada = Pick<
-  PrismaReserva,
-  "id" | "nombre" | "email" | "telefono" | "servicio" | "hora" | "duracion"
-> & { fecha: string };
-
-export type BloqueoSerializado = Pick<
-  PrismaBlockedSlot,
-  "id" | "hora" | "duracion" | "motivo"
-> & { fecha: string };
 
 export function AdminPanel({
   initialReservas,

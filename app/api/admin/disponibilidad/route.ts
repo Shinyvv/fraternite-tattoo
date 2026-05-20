@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { updateSettings } from "@/lib/demo-data";
 import { availabilitySchema } from "@/lib/validators";
 
 export async function PATCH(request: Request) {
@@ -9,12 +9,7 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Datos invÃ¡lidos" }, { status: 400 });
   }
 
-  const updated = await prisma.studioSetting.upsert({
-    where: { id: "main" },
-    create: { id: "main", ...parsed.data },
-    update: parsed.data
-  });
-
+  const updated = updateSettings(parsed.data);
   return NextResponse.json(updated);
 }
 

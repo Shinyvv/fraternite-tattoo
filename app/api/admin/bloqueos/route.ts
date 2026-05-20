@@ -1,7 +1,7 @@
 import { startOfDay } from "date-fns";
 import { NextResponse } from "next/server";
 import { endDateFromDuration, hasOverlap, toDateAtTime } from "@/lib/booking";
-import { prisma } from "@/lib/prisma";
+import { addBloqueo, listBloqueos, listReservas, type BloqueoSerializado } from "@/lib/demo-data";
 import { blockSchema } from "@/lib/validators";
 
 export async function POST(request: Request) {
@@ -17,10 +17,14 @@ export async function POST(request: Request) {
   const dayEnd = new Date(day);
   dayEnd.setDate(dayEnd.getDate() + 1);
 
-  const [reservas, bloqueos] = await Promise.all([
-    prisma.reserva.findMany({ where: { fecha: { gte: day, lt: dayEnd } }, select: { hora: true, duracion: true } }),
-    prisma.blockedSlot.findMany({ where: { fecha: { gte: day, lt: dayEnd } }, select: { hora: true, duracion: true } })
-  ]);
+  const reservas = listReservas().filter((item) => {
+    const itemDate = startOfDay(new Date(item.fecha));
+    return itemDate >= day && itemDate < dayEnd;
+  });
+  const bloqueos = listBloqueos().filter((item) => {
+    const itemDate = startOfDay(new Date(item.fecha));
+    return itemDate >= day && itemDate < dayEnd;
+  });
 
   const start = toDateAtTime(day, data.hora);
   const end = endDateFromDuration(day, data.hora, data.duracion);
@@ -30,7 +34,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Este tramo ya estÃ¡ ocupado" }, { status: 409 });
   }
 
-  const created = await prisma.blockedSlot.create({ data: { ...data, fecha: day } });
+  const created = addBloqueo({
+    fecha: new Date(data.fecha).toISOString(),
+    hora: data.hora,
+    duracion: data.duracion,
+    motivo: data.motivo ?? null
+  } satisfies Omit<BloqueoSerializado, "id">);
   return NextResponse.json(created, { status: 201 });
 }
 

@@ -1,7 +1,13 @@
 import { startOfDay } from "date-fns";
 import { NextResponse } from "next/server";
 import { endDateFromDuration, hasOverlap, isPastDay, toDateAtTime } from "@/lib/booking";
-import { prisma } from "@/lib/prisma";
+import {
+  addReserva,
+  getSettings,
+  listBloqueos,
+  listReservas,
+  type ReservaSerializada
+} from "@/lib/demo-data";
 import { bookingSchema } from "@/lib/validators";
 
 export async function GET(request: Request) {
@@ -9,19 +15,26 @@ export async function GET(request: Request) {
   const dateParam = searchParams.get("date");
 
   if (!dateParam) {
-    const reservas = await prisma.reserva.findMany({ orderBy: { createdAt: "desc" }, take: 100 });
-    return NextResponse.json(reservas);
+    return NextResponse.json(listReservas());
   }
 
   const date = startOfDay(new Date(dateParam));
   const nextDate = new Date(date);
   nextDate.setDate(nextDate.getDate() + 1);
 
-  const [booked, blocked, settings] = await Promise.all([
-    prisma.reserva.findMany({ where: { fecha: { gte: date, lt: nextDate } }, select: { hora: true, duracion: true } }),
-    prisma.blockedSlot.findMany({ where: { fecha: { gte: date, lt: nextDate } }, select: { hora: true, duracion: true } }),
-    prisma.studioSetting.upsert({ where: { id: "main" }, update: {}, create: { id: "main" } })
-  ]);
+  const booked = listReservas()
+    .filter((item) => {
+      const itemDate = startOfDay(new Date(item.fecha));
+      return itemDate >= date && itemDate < nextDate;
+    })
+    .map((item) => ({ hora: item.hora, duracion: item.duracion }));
+  const blocked = listBloqueos()
+    .filter((item) => {
+      const itemDate = startOfDay(new Date(item.fecha));
+      return itemDate >= date && itemDate < nextDate;
+    })
+    .map((item) => ({ hora: item.hora, duracion: item.duracion }));
+  const settings = getSettings();
 
   return NextResponse.json({ booked, blocked, settings });
 }
@@ -47,10 +60,14 @@ export async function POST(request: Request) {
   const nextDay = new Date(targetDate);
   nextDay.setDate(nextDay.getDate() + 1);
 
-  const [reservas, bloqueos] = await Promise.all([
-    prisma.reserva.findMany({ where: { fecha: { gte: targetDate, lt: nextDay } }, select: { hora: true, duracion: true } }),
-    prisma.blockedSlot.findMany({ where: { fecha: { gte: targetDate, lt: nextDay } }, select: { hora: true, duracion: true } })
-  ]);
+  const reservas = listReservas().filter((item) => {
+    const itemDate = startOfDay(new Date(item.fecha));
+    return itemDate >= targetDate && itemDate < nextDay;
+  });
+  const bloqueos = listBloqueos().filter((item) => {
+    const itemDate = startOfDay(new Date(item.fecha));
+    return itemDate >= targetDate && itemDate < nextDay;
+  });
 
   const merged = [...reservas, ...bloqueos].map((item) => ({
     start: toDateAtTime(targetDate, item.hora),
@@ -61,7 +78,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Horario no disponible" }, { status: 409 });
   }
 
-  const created = await prisma.reserva.create({ data: { ...data, fecha: targetDate } });
+  const created = addReserva({
+    nombre: data.nombre,
+    email: data.email,
+    telefono: data.telefono,
+    servicio: data.servicio,
+    fecha: new Date(data.fecha).toISOString(),
+    hora: data.hora,
+    duracion: data.duracion,
+    descripcion: data.descripcion
+  } satisfies Omit<ReservaSerializada, "id">);
   return NextResponse.json(created, { status: 201 });
 }
 

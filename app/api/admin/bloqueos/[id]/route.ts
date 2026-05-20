@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { removeBloqueo } from "@/lib/demo-data";
 
 export async function DELETE(_: Request, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params;
-  await prisma.blockedSlot.delete({ where: { id } });
-  return NextResponse.json({ ok: true });
+  const removed = removeBloqueo(id);
+  return NextResponse.json({ ok: removed });
 }
 
